@@ -13,19 +13,19 @@ public class TaskManager {
 
     // Les collections DEMANDÉES dans le projet
     private Map<Integer, Task> tasksParId;           // Map pour accès rapide par ID
-    private List<User> utilisateurs;                   // List pour la liste des users
-    private PriorityQueue<Task> tasksParDeadline;      // PriorityQueue pour tri auto
-
-    // Collection supplémentaire utile
+    private List<User> utilisateurs;                 // List pour la liste des users
+    private PriorityQueue<Task> tasksParDeadline;    // PriorityQueue pour tri auto
+    private TaskSubject taskSubject;                  // Pour les notifications (Pattern Observer)
     private Map<String, List<Task>> tasksParUtilisateur; // Tâches par user
 
-    // Constructeur PRIVÉ (car c'est un Singleton)
+    // Constructeur PRIVÉ (Singleton)
     private TaskManager() {
         // Initialisation des collections thread-safe
         tasksParId = new ConcurrentHashMap<>();
         utilisateurs = Collections.synchronizedList(new ArrayList<>());
         tasksParDeadline = new PriorityQueue<>();
         tasksParUtilisateur = new ConcurrentHashMap<>();
+        taskSubject = new TaskSubject(); // Initialisation du sujet pour Observer
 
         // Ajouter un admin par défaut
         utilisateurs.add(new User("admin", "admin123", "ADMIN"));
@@ -40,6 +40,11 @@ public class TaskManager {
             instance = new TaskManager();
         }
         return instance;
+    }
+
+    // Getter pour TaskSubject (Pattern Observer)
+    public TaskSubject getTaskSubject() {
+        return taskSubject;
     }
 
     // Ajouter des tâches de test
@@ -86,7 +91,7 @@ public class TaskManager {
         return null; // Échec connexion
     }
 
-    // === GESTION DES TÂCHES ===
+    // === GESTION DES TÂCHES AVEC NOTIFICATIONS ===
 
     public synchronized Task creerTask(String titre, String description,
                                        LocalDate deadline, String priorite,
@@ -104,6 +109,9 @@ public class TaskManager {
                 .computeIfAbsent(assigneA, k -> new ArrayList<>())
                 .add(task);
 
+        // NOTIFICATION : informer tous les observateurs
+        taskSubject.notifyObservers(task, "CRÉÉE");
+
         return task;
     }
 
@@ -114,6 +122,9 @@ public class TaskManager {
             // Mettre à jour la PriorityQueue
             tasksParDeadline.removeIf(t -> t.getId() == task.getId());
             tasksParDeadline.add(task);
+
+            // NOTIFICATION : informer tous les observateurs
+            taskSubject.notifyObservers(task, "MODIFIÉE");
 
             return true;
         }
@@ -136,6 +147,10 @@ public class TaskManager {
             if (userTasks != null) {
                 userTasks.removeIf(t -> t.getId() == taskId);
             }
+
+            // NOTIFICATION : informer tous les observateurs
+            taskSubject.notifyObservers(task, "SUPPRIMÉE");
+
             return true;
         }
         return false;
@@ -177,5 +192,10 @@ public class TaskManager {
 
     public synchronized List<Task> getAllTasks() {
         return new ArrayList<>(tasksParId.values());
+    }
+
+    // Méthode utilitaire pour obtenir tous les utilisateurs
+    public synchronized List<User> getAllUsers() {
+        return new ArrayList<>(utilisateurs);
     }
 }

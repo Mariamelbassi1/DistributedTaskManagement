@@ -15,23 +15,46 @@ public class TaskSubject implements Subject {
     public void registerObserver(Observer observer) {
         if (!observers.contains(observer)) {
             observers.add(observer);
-            System.out.println("Nouvel observateur enregistré");
+            System.out.println("✅ Nouvel observateur enregistré. Total: " + observers.size());
         }
     }
 
     @Override
     public void removeObserver(Observer observer) {
         observers.remove(observer);
-        System.out.println("Observateur retiré");
+        System.out.println("✅ Observateur retiré. Restants: " + observers.size());
     }
 
     @Override
     public void notifyObservers(Object object, String action) {
-        Task task = (Task) object; // On sait que c'est une Task
-        System.out.println("Notification à " + observers.size() + " observateurs");
+        // Vérifier que l'objet est bien une Task
+        if (!(object instanceof Task)) {
+            System.out.println("❌ Erreur: l'objet n'est pas une Task");
+            return;
+        }
 
+        Task task = (Task) object;
+        System.out.println("📢 Notification à " + observers.size() + " observateurs - Action: " + action);
+
+        // Notifier tous les observateurs
         for (Observer observer : observers) {
             observer.update(task, action);
         }
+    }
+
+    // Méthode utilitaire pour voir les observateurs
+    public int getNbObservers() {
+        return observers.size();
+    }
+
+    // Méthode pour vérifier si un observer est déjà enregistré
+    public boolean hasObserver(Observer observer) {
+        return observers.contains(observer);
+    }
+
+    // Méthode pour nettoyer tous les observateurs (utile pour les tests)
+    public void clearAllObservers() {
+        observers.clear();
+        System.out.println("🧹 Tous les observateurs ont été retirés");
     }
 }
